@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshVeg - Professional Sabji Store</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons for professional icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .toast-enter { animation: slideInRight 0.3s forwards; }
+        .toast-leave { animation: slideOutRight 0.3s forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* Hide elements initially */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        /* Shimmer loading effect */
+        .shimmer {
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%;
+            animation-duration: 1s;
+            animation-fill-mode: forwards; 
+            animation-iteration-count: infinite;
+            animation-name: placeholderShimmer;
+            animation-timing-function: linear;
+        }
+        @keyframes placeholderShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden selection:bg-green-200">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm z-40 sticky top-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('shop')">
+                    <div class="bg-green-600 text-white p-1.5 rounded-lg">
+                        <i class="ph ph-leaf text-2xl"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">FreshVeg</span>
+                </div>
+
+                <!-- Navigation Links / Actions -->
+                <div class="flex items-center gap-4">
+                    <!-- Global Role Badge (Visible to all for context) -->
+                    <span id="navRoleBadge" class="hidden text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                        Customer
+                    </span>
+
+                    <!-- Cart Button (Customer Only) -->
+                    <button id="navCartBtn" onclick="navigate('cart')" class="hidden relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                        <i class="ph ph-shopping-cart text-2xl"></i>
+                        <span id="cartCountBadge" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-500 rounded-full hidden">0</span>
+                    </button>
+
+                    <!-- Auth Actions -->
+                    <div id="authContainer" class="flex items-center">
+                        <button id="googleLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors shadow-sm">
+                            <i class="ph-fill ph-google-logo"></i> Login
+                        </button>
+                        
+                        <!-- User Profile Dropdown Trigger -->
+                        <div id="userMenuBtn" class="hidden flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg border border-transparent hover:border-slate-200 transition-all" onclick="toggleUserDropdown()">
+                            <img id="navUserAvatar" src="" alt="User" class="w-8 h-8 rounded-full bg-slate-200 object-cover">
+                            <div class="hidden md:block text-sm text-right leading-tight">
+                                <p id="navUserName" class="font-semibold text-slate-800">User</p>
+                            </div>
+                            <i class="ph ph-caret-down text-slate-400"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Dropdown Menu -->
+        <div id="userDropdown" class="hidden absolute right-4 top-16 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50 fade-in">
+            <!-- Navigation specifically for the user's role -->
+            <div id="dropdownNavItems">
+                <!-- Injected via JS based on role -->
+            </div>
+            
+            <div class="h-px bg-slate-100 my-2"></div>
+            <button onclick="handleLogout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <i class="ph ph-sign-out"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto relative bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 h-full">
+
+            <!-- 1. LOGIN VIEW -->
+            <div id="view-login" class="view-section active h-full flex items-center justify-center">
+                <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center border border-slate-100">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="ph ph-basket text-4xl text-green-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">Welcome to FreshVeg</h2>
+                    <p class="text-slate-500 mb-8">Order fresh vegetables directly from the farm, or manage your store.</p>
+                    
+                    <button onclick="document.getElementById('googleLoginBtn').click()" class="w-full bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-all hover:shadow-md">
+                        <svg class="w-6 h-6" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                        Continue with Google
+                    </button>
+                    
+                    <p class="mt-6 text-xs text-slate-400">By logging in, you agree to our Terms of Service & Privacy Policy.</p>
+                </div>
+            </div>
+
+            <!-- 2. CUSTOMER - SHOP VIEW -->
+            <div id="view-shop" class="view-section pb-20">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Fresh Vegetables</h1>
+                        <p class="text-slate-500 text-sm">Farm fresh quality delivered to you</p>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <!-- JS Injected Shimmer or Cards -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm h-48 shimmer"></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm h-48 shimmer"></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm h-48 shimmer"></div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm h-48 shimmer"></div>
+                </div>
+            </div>
+
+            <!-- 3. CUSTOMER - CART / CHECKOUT VIEW -->
+            <div id="view-cart" class="view-section max-w-4xl mx-auto pb-20">
+                <h1 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <i class="ph ph-shopping-cart text-green-600"></i> Your Cart
+                </h1>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Cart Items -->
+                    <div class="lg:col-span-2 space-y-4" id="cartItemsContainer">
+                        <!-- JS Injected Cart Items -->
+                    </div>
+
+                    <!-- Checkout Summary -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit sticky top-20">
+                        <h3 class="font-bold text-lg mb-4 text-slate-800 border-b pb-2">Order Summary</h3>
+                        
+                        <div class="space-y-2 mb-4 text-sm">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal</span>
+                                <span class="font-semibold text-slate-800">₹<span id="cartSubtotal">0</span></span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>Delivery Fee</span>
+                                <span class="font-semibold text-slate-800">₹20</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-slate-100 pt-4 mb-6 flex justify-between items-center">
+                            <span class="font-bold text-slate-800">Total</span>
+                            <span class="font-bold text-2xl text-green-600">₹<span id="cartTotal">0</span></span>
+                        </div>
+
+                        <!-- Address Validation Check -->
+                        <div id="addressWarning" class="hidden mb-4 p-3 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-200 flex items-start gap-2">
+                            <i class="ph ph-warning-circle text-lg mt-0.5"></i>
+                            <div>
+                                <p class="font-semibold">Address Required</p>
+                                <p class="text-xs opacity-90">Please update your profile with a delivery address before placing an order.</p>
+                                <button onclick="navigate('profile')" class="mt-2 text-yellow-900 font-semibold underline text-xs">Go to Profile</button>
+                            </div>
+                        </div>
+
+                        <button id="placeOrderBtn" onclick="placeOrder()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="ph ph-check-circle text-xl"></i> Place Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. CUSTOMER - MY ORDERS VIEW -->
+            <div id="view-my-orders" class="view-section max-w-4xl mx-auto">
+                <h1 class="text-2xl font-bold text-slate-800 mb-6">My Orders</h1>
+                <div id="customerOrdersList" class="space-y-4">
+                    <!-- JS Injected Orders -->
+                </div>
+            </div>
+
+            <!-- 5. PROFILE VIEW (Shared across roles, but content slightly varies) -->
+            <div id="view-profile" class="view-section max-w-2xl mx-auto">
+                <h1 class="text-2xl font-bold text-slate-800 mb-6">My Profile</h1>
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex items-center gap-4 mb-8">
+                        <img id="profileAvatar" src="" class="w-20 h-20 rounded-full border-4 border-slate-50 object-cover shadow-sm">
+                        <div>
+                            <h2 id="profileNameDisplay" class="text-xl font-bold text-slate-800">Name</h2>
+                            <p id="profileEmailDisplay" class="text-slate-500 text-sm">email@example.com</p>
+                            <span id="profileRoleBadge" class="mt-1 inline-block text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Customer</span>
+                        </div>
+                    </div>
+
+                    <form id="profileForm" class="space-y-5" onsubmit="saveProfile(event)">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                <input type="text" id="profileName" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-shadow">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                                <input type="tel" id="profilePhone" required placeholder="10-digit number" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-shadow">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Delivery Address</label>
+                            <textarea id="profileAddress" required rows="3" placeholder="House No, Street, Village/City, Landmark" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-shadow resize-none"></textarea>
+                        </div>
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center gap-2">
+                                <i class="ph ph-floppy-disk"></i> Save Details
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 6. OWNER - INVENTORY MANAGEMENT -->
+            <div id="view-admin-inventory" class="view-section">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Inventory Management</h1>
+                        <p class="text-slate-500 text-sm">Update prices and manage vegetable stock.</p>
+                    </div>
+                    <button onclick="openProductModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 shadow-sm transition-colors">
+                        <i class="ph ph-plus-circle text-lg"></i> Add New Vegetable
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider border-b border-slate-200">
+                                    <th class="p-4 font-semibold">Item</th>
+                                    <th class="p-4 font-semibold">Rate (₹)</th>
+                                    <th class="p-4 font-semibold">Unit</th>
+                                    <th class="p-4 font-semibold">Stock</th>
+                                    <th class="p-4 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminInventoryList" class="divide-y divide-slate-100">
+                                <!-- JS Injected Inventory Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. OWNER - ORDERS DASHBOARD -->
+            <div id="view-admin-orders" class="view-section">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">All Orders</h1>
+                        <p class="text-slate-500 text-sm">Manage customer orders and dispatch.</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="adminOrdersList">
+                     <!-- JS Injected Order Cards for Admin -->
+                </div>
+            </div>
+
+            <!-- 8. DELIVERY BOY - DASHBOARD -->
+            <div id="view-delivery-dashboard" class="view-section max-w-4xl mx-auto">
+                <div class="mb-6">
+                    <h1 class="text-2xl font-bold text-slate-800">Delivery Dashboard</h1>
+                    <p class="text-slate-500 text-sm">Find ready orders and update delivery status.</p>
+                </div>
+
+                <!-- Tabs for Delivery Boy -->
+                <div class="flex gap-2 mb-6 border-b border-slate-200">
+                    <button onclick="setDeliveryTab('available')" id="tab-del-available" class="px-4 py-2 border-b-2 border-green-600 text-green-600 font-semibold transition-colors">Available Orders</button>
+                    <button onclick="setDeliveryTab('my_deliveries')" id="tab-del-mine" class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium transition-colors">My Deliveries</button>
+                </div>
+
+                <div id="deliveryOrdersList" class="space-y-4">
+                    <!-- JS Injected Orders for Delivery -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Product Modal (Owner) -->
+    <div id="productModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform scale-95 transition-transform" id="productModalContent">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="productModalTitle" class="font-bold text-lg text-slate-800">Add Vegetable</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-700 bg-white rounded-full p-1 shadow-sm">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            <form id="productForm" class="p-5 space-y-4" onsubmit="saveProduct(event)">
+                <input type="hidden" id="editProductId">
+                
+                <div class="flex gap-4">
+                    <div class="w-1/3">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Emoji/Icon</label>
+                        <input type="text" id="prodEmoji" required class="w-full text-center text-2xl px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="🍅">
+                    </div>
+                    <div class="w-2/3">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Name (English/Hindi)</label>
+                        <input type="text" id="prodName" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Tomato / टमाटर">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Price (₹)</label>
+                        <input type="number" id="prodPrice" required min="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Unit</label>
+                        <select id="prodUnit" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                            <option value="kg">kg (किलो)</option>
+                            <option value="piece">Piece (पीस)</option>
+                            <option value="bunch">Bunch (गुच्छी)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Current Stock Quantity</label>
+                    <input type="number" id="prodStock" required min="0" step="0.5" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="100">
+                    <p class="text-[10px] text-slate-400 mt-1">If stock reaches 0, it shows "Out of Stock" to customers.</p>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancel</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Details Modal (Shared for Admin & Delivery) -->
+    <div id="orderDetailsModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]" id="orderDetailsContent">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Logic -->
+    <script type="module">
+        // Import strictly from v11.6.1 as per mandatory rules, despite user config snippet.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, addDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // User Provided Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDCrf70Ap1csV1I71PS19165-zTj09HIZM",
+            authDomain: "your-vegetables.firebaseapp.com",
+            projectId: "your-vegetables",
+            storageBucket: "your-vegetables.firebasestorage.app",
+            messagingSenderId: "754330407990",
+            appId: "1:754330407990:web:a0240072cd11a5a3523497"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Strict Paths Constants
+        const APP_NAMESPACE = 'your-vegetables'; // Used as appId for paths
+        const DB_PATHS = {
+            PRODUCTS: `artifacts/${APP_NAMESPACE}/public/data/products`,
+            ORDERS: `artifacts/${APP_NAMESPACE}/public/data/orders`,
+            USERS: `artifacts/${APP_NAMESPACE}/users`
+        };
+
+        // Global State
+        let currentUser = null;
+        let userProfile = null;
+        let currentRole = 'customer'; // Default
+        
+        let productsData = [];
+        let ordersData = [];
+        let cartData = [];
+        
+        // Listeners
+        let productsUnsubscribe = null;
+        let ordersUnsubscribe = null;
+
+        // Make functions globally available for inline HTML handlers
+        window.navigate = navigate;
+        window.toggleUserDropdown = toggleUserDropdown;
+        window.handleLogout = handleLogout;
+        window.saveProfile = saveProfile;
+        
+        window.addToCart = addToCart;
+        window.updateCartQty = updateCartQty;
+        window.removeFromCart = removeFromCart;
+        window.placeOrder = placeOrder;
+        
+        window.openProductModal = openProductModal;
+        window.closeProductModal = closeProductModal;
+        window.saveProduct = saveProduct;
+        window.deleteProduct = deleteProduct;
+        
+        window.openOrderDetails = openOrderDetails;
+        window.closeOrderDetails = closeOrderDetails;
+        window.updateOrderStatus = updateOrderStatus;
+        
+        window.setDeliveryTab = setDeliveryTab;
+
+        
+        // 1. Initial Setup
+        async function init() {
+            // Attempt anonymous login immediately to satisfy "Auth before queries" strict rule
+            // if there's no existing session.
+            try {
+                if(!auth.currentUser) {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Auto-login failed:", e);
+            }
+        }
+
+        // Auth State Observer
+        onAuthStateChanged(auth, async (user) => {
+            const authContainer = document.getElementById('authContainer');
+            const loginBtn = document.getElementById('googleLoginBtn');
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            
+            if (user) {
+                currentUser = user;
+                
+                // UI Updates for logged in state
+                loginBtn.classList.add('hidden');
+                userMenuBtn.classList.remove('hidden');
+                userMenuBtn.classList.add('flex');
+                
+                // If Google user, they have displayName/photoURL. If anonymous, we use defaults.
+                document.getElementById('navUserName').textContent = user.displayName || 'Guest User';
+                document.getElementById('navUserAvatar').src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'G'}&background=16a34a&color=fff`;
+                
+                // Fetch or Create Profile
+                await fetchAndSetupProfile(user);
+                
+                // Setup Realtime Listeners
+                setupRealtimeListeners();
+                
+                // Route user based on role (unless they were just on login page, then take to their dashboard)
+                if(document.getElementById('view-login').classList.contains('active')) {
+                    routeUserBasedOnRole();
+                } else {
+                    updateNavigationUI();
+                }
+                
+                // Check local storage cart
+                loadCartFromLocal();
+                updateCartUI();
+
+            } else {
+                // Logged out state
+                currentUser = null;
+                userProfile = null;
+                
+                loginBtn.classList.remove('hidden');
+                userMenuBtn.classList.add('hidden');
+                userMenuBtn.classList.remove('flex');
+                document.getElementById('navRoleBadge').classList.add('hidden');
+                document.getElementById('navCartBtn').classList.add('hidden');
+                
+                stopListeners();
+                navigate('login');
+            }
+        });
+
+        // Google Login Handler
+        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                // This upgrades the anonymous session or logs in existing user
+                await signInWithPopup(auth, provider);
+                showToast('Successfully logged in!', 'success');
+            } catch (error) {
+                console.error("Login Error:", error);
+                showToast(error.message, 'error');
+            }
+        });
+
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                toggleUserDropdown(false);
+                showToast('Logged out successfully', 'info');
+            } catch (error) {
+                console.error("Logout Error", error);
+            }
+        }
+
+        
+        async function fetchAndSetupProfile(user) {
+            const userRef = doc(db, DB_PATHS.USERS, user.uid);
+            
+            try {
+                const docSnap = await getDoc(userRef);
+                
+                if (docSnap.exists()) {
+                    userProfile = docSnap.data();
+                    currentRole = userProfile.role || 'customer';
+                } else {
+                    // New User - Create default profile
+                    userProfile = {
+                        uid: user.uid,
+                        name: user.displayName || '',
+                        email: user.email || '',
+                        phone: '',
+                        address: '',
+                        role: 'customer', // Default role
+                        createdAt: new Date().toISOString()
+                    };
+                    await setDoc(userRef, userProfile);
+                    currentRole = 'customer';
+                }
+
+                // Update Profile Form UI
+                document.getElementById('profileName').value = userProfile.name || '';
+                document.getElementById('profilePhone').value = userProfile.phone || '';
+                document.getElementById('profileAddress').value = userProfile.address || '';
+                
+                document.getElementById('profileNameDisplay').textContent = userProfile.name || 'Set your name';
+                document.getElementById('profileEmailDisplay').textContent = userProfile.email || 'Anonymous';
+                document.getElementById('profileAvatar').src = user.photoURL || `https://ui-avatars.com/api/?name=${userProfile.name || 'G'}&background=slate&color=fff`;
+
+                updateNavigationUI();
+                
+            } catch (error) {
+                console.error("Error fetching profile:", error);
+                showToast("Error loading profile", "error");
+            }
+        }
+
+        async function saveProfile(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const name = document.getElementById('profileName').value.trim();
+            const phone = document.getElementById('profilePhone').value.trim();
+            const address = document.getElementById('profileAddress').value.trim();
+
+            const userRef = doc(db, DB_PATHS.USERS, currentUser.uid);
+            
+            try {
+                const updates = { name, phone, address };
+                await updateDoc(userRef, updates);
+                
+                // Update local state
+                userProfile = { ...userProfile, ...updates };
+                
+                document.getElementById('profileNameDisplay').textContent = name;
+                document.getElementById('addressWarning').classList.add('hidden');
+                
+                showToast("Profile saved successfully!", "success");
+                
+                // If they came from cart, maybe send them back
+                if(cartData.length > 0) {
+                    navigate('cart');
+                }
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                showToast("Failed to save profile.", "error");
+            }
+        }
+
+        function updateNavigationUI() {
+            const roleBadge = document.getElementById('navRoleBadge');
+            const cartBtn = document.getElementById('navCartBtn');
+            const dropdownNav = document.getElementById('dropdownNavItems');
+            const profRoleBadge = document.getElementById('profileRoleBadge');
+            
+            // Set Badges
+            roleBadge.textContent = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
+            roleBadge.classList.remove('hidden');
+            
+            if(profRoleBadge) {
+                profRoleBadge.textContent = roleBadge.textContent;
+                profRoleBadge.className = `mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
+                    currentRole === 'owner' ? 'bg-purple-100 text-purple-700' :
+                    currentRole === 'delivery' ? 'bg-orange-100 text-orange-700' :
+                    'bg-blue-100 text-blue-700'
+                }`;
+            }
+
+            // Customer specific UI
+            if (currentRole === 'customer') {
+                cartBtn.classList.remove('hidden');
+                dropdownNav.innerHTML = `
+                    <button onclick="navigate('shop')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-storefront"></i> Shop</button>
+                    <button onclick="navigate('my-orders')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-receipt"></i> My Orders</button>
+                    <button onclick="navigate('profile')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-user"></i> Profile</button>
+                `;
+            } else if (currentRole === 'owner') {
+                cartBtn.classList.add('hidden');
+                dropdownNav.innerHTML = `
+                    <button onclick="navigate('admin-orders')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-list-checks"></i> All Orders</button>
+                    <button onclick="navigate('admin-inventory')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-cube"></i> Inventory</button>
+                    <button onclick="navigate('profile')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-user"></i> Profile</button>
+                `;
+            } else if (currentRole === 'delivery') {
+                cartBtn.classList.add('hidden');
+                dropdownNav.innerHTML = `
+                    <button onclick="navigate('delivery-dashboard')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-moped"></i> Dashboard</button>
+                    <button onclick="navigate('profile')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i class="ph ph-user"></i> Profile</button>
+                `;
+            }
+        }
+
+        function routeUserBasedOnRole() {
+            if (currentRole === 'owner') navigate('admin-orders');
+            else if (currentRole === 'delivery') navigate('delivery-dashboard');
+            else navigate('shop');
+        }
+
+        function navigate(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Show target
+            const target = document.getElementById(`view-${viewId}`);
+            if (target) {
+                target.classList.add('active');
+            }
+            
+            toggleUserDropdown(false); // Ensure menu is closed
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Specific View Logic
+            if(viewId === 'cart') renderCartView();
+            if(viewId === 'my-orders') renderCustomerOrders();
+        }
+
+        function toggleUserDropdown(forceState) {
+            const dropdown = document.getElementById('userDropdown');
+            if (forceState === false) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const btn = document.getElementById('userMenuBtn');
+            const drop = document.getElementById('userDropdown');
+            if (btn && !btn.contains(e.target) && !drop.contains(e.target)) {
+                drop.classList.add('hidden');
+            }
+        });
+
+
+        function setupRealtimeListeners() {
+            if (!currentUser) return;
+
+            // 1. Listen to Products Collection
+            const productsQuery = query(collection(db, DB_PATHS.PRODUCTS)); // No complex orderBy to adhere to rules
+            productsUnsubscribe = onSnapshot(productsQuery, (snapshot) => {
+                productsData = [];
+                snapshot.forEach(doc => {
+                    productsData.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // If empty, suggest adding initial data (handled in UI)
+                renderProducts();
+            }, (error) => {
+                console.error("Products listen error:", error);
+                showToast("Failed to sync inventory", "error");
+            });
+
+            // 2. Listen to Orders Collection (Fetch all, filter in JS to avoid index requirements)
+            let ordersQuery;
+            if (currentRole === 'owner' || currentRole === 'delivery') {
+                ordersQuery = query(collection(db, DB_PATHS.ORDERS));
+            } else {
+                // Customer should only query their own orders to pass Firestore Security Rules
+                ordersQuery = query(collection(db, DB_PATHS.ORDERS), where("customerId", "==", currentUser.uid));
+            }
+            
+            ordersUnsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+                ordersData = [];
+                snapshot.forEach(doc => {
+                    ordersData.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sort by timestamp descending in JS
+                ordersData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                // Re-render appropriate order views if they are active
+                renderCustomerOrders();
+                renderAdminOrders();
+                renderDeliveryOrders();
+                
+            }, (error) => {
+                console.error("Orders listen error:", error);
+            });
+        }
+
+        function stopListeners() {
+            if (productsUnsubscribe) productsUnsubscribe();
+            if (ordersUnsubscribe) ordersUnsubscribe();
+        }
+
+
+
+        function renderProducts() {
+            // Render for Customer Shop
+            const grid = document.getElementById('productsGrid');
+            if(grid) {
+                if (productsData.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">
+                        <i class="ph ph-basket text-4xl mb-2 opacity-50"></i>
+                        <p>No vegetables available at the moment.</p>
+                        ${currentRole === 'owner' ? '<p class="text-sm mt-2 text-green-600">Go to Inventory to add items.</p>' : ''}
+                    </div>`;
+                } else {
+                    grid.innerHTML = productsData.map(product => {
+                        const isOutOfStock = product.stock <= 0;
+                        const cartItem = cartData.find(item => item.id === product.id);
+                        const qtyInCart = cartItem ? cartItem.qty : 0;
+                        
+                        return `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative transition-all hover:shadow-md ${isOutOfStock ? 'opacity-70 grayscale-[0.5]' : ''}">
+                            ${isOutOfStock ? '<div class="absolute top-2 right-2 bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded-full z-10 uppercase tracking-wider">Out of Stock</div>' : ''}
+                            
+                            <div class="h-32 bg-slate-50 flex items-center justify-center text-6xl relative">
+                                ${product.emoji}
+                            </div>
+                            
+                            <div class="p-4 flex-1 flex flex-col">
+                                <h3 class="font-bold text-slate-800 leading-tight mb-1">${product.name}</h3>
+                                <div class="text-xs text-slate-500 mb-3">Available: <span class="font-medium text-slate-700">${product.stock} ${product.unit}</span></div>
+                                
+                                <div class="mt-auto flex items-center justify-between">
+                                    <div class="font-bold text-lg text-green-600">₹${product.price}<span class="text-xs text-slate-400 font-normal">/${product.unit}</span></div>
+                                    
+                                    ${!isOutOfStock && currentRole === 'customer' ? `
+                                        ${qtyInCart > 0 ? `
+                                            <div class="flex items-center gap-2 bg-green-50 rounded-lg p-1 border border-green-200">
+                                                <button onclick="updateCartQty('${product.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-green-600 shadow-sm hover:bg-green-100"><i class="ph ph-minus text-xs"></i></button>
+                                                <span class="text-xs font-bold w-4 text-center">${qtyInCart}</span>
+                                                <button onclick="updateCartQty('${product.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-green-600 shadow-sm hover:bg-green-100"><i class="ph ph-plus text-xs"></i></button>
+                                            </div>
+                                        ` : `
+                                            <button onclick="addToCart('${product.id}')" class="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition-colors" title="Add to cart">
+                                                <i class="ph ph-plus text-lg"></i>
+                                            </button>
+                                        `}
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Render for Admin Inventory
+            const invList = document.getElementById('adminInventoryList');
+            if (invList) {
+                if (productsData.length === 0) {
+                    invList.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">No inventory found. Add your first item!</td></tr>`;
+                } else {
+                    invList.innerHTML = productsData.map(product => `
+                        <tr class="hover:bg-slate-50 transition-colors group">
+                            <td class="p-4 flex items-center gap-3">
+                                <div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-2xl">${product.emoji}</div>
+                                <span class="font-semibold text-slate-800">${product.name}</span>
+                            </td>
+                            <td class="p-4 font-medium text-slate-700">₹${product.price}</td>
+                            <td class="p-4 text-slate-500 text-sm capitalize">${product.unit}</td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${product.stock > 10 ? 'bg-green-100 text-green-700' : product.stock > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">
+                                    ${product.stock}
+                                </span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <button onclick="openProductModal('${product.id}')" class="text-blue-600 hover:text-blue-800 p-2 rounded hover:bg-blue-50 transition-colors"><i class="ph ph-pencil-simple text-lg"></i></button>
+                                <button onclick="deleteProduct('${product.id}')" class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors ml-1"><i class="ph ph-trash text-lg"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        }
+
+
+
+        function addToCart(productId) {
+            if(currentRole !== 'customer') return;
+            const product = productsData.find(p => p.id === productId);
+            if(!product || product.stock <= 0) return;
+
+            cartData.push({
+                id: product.id,
+                name: product.name,
+                price: Number(product.price),
+                unit: product.unit,
+                emoji: product.emoji,
+                qty: 1
+            });
+            saveCart();
+            renderProducts(); // Update grid UI
+            showToast(`${product.name} added to cart`, 'success');
+        }
+
+        function updateCartQty(productId, change) {
+            const itemIndex = cartData.findIndex(item => item.id === productId);
+            if(itemIndex > -1) {
+                const product = productsData.find(p => p.id === productId);
+                let newQty = cartData[itemIndex].qty + change;
+                
+                if (newQty <= 0) {
+                    cartData.splice(itemIndex, 1);
+                } else if (product && newQty > product.stock) {
+                    showToast(`Only ${product.stock} available in stock`, 'error');
+                    return;
+                } else {
+                    cartData[itemIndex].qty = newQty;
+                }
+                saveCart();
+                renderProducts();
+                renderCartView(); // If cart is open
+            }
+        }
+
+        function removeFromCart(productId) {
+            cartData = cartData.filter(item => item.id !== productId);
+            saveCart();
+            renderProducts();
+            renderCartView();
+        }
+
+        function saveCart() {
+            localStorage.setItem('freshveg_cart', JSON.stringify(cartData));
+            updateCartUI();
+        }
+
+        function loadCartFromLocal() {
+            try {
+                const saved = localStorage.getItem('freshveg_cart');
+                if(saved) cartData = JSON.parse(saved);
+            } catch(e) {}
+        }
+
+        function updateCartUI() {
+            const badge = document.getElementById('cartCountBadge');
+            const totalQty = cartData.reduce((sum, item) => sum + item.qty, 0);
+            
+            if(totalQty > 0) {
+                badge.textContent = totalQty;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderCartView() {
+            const container = document.getElementById('cartItemsContainer');
+            const subTotalEl = document.getElementById('cartSubtotal');
+            const totalEl = document.getElementById('cartTotal');
+            const orderBtn = document.getElementById('placeOrderBtn');
+            const warningEl = document.getElementById('addressWarning');
+
+            if(cartData.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl border border-slate-100 text-center flex flex-col items-center justify-center">
+                        <i class="ph ph-shopping-cart text-6xl text-slate-200 mb-4"></i>
+                        <h3 class="text-xl font-bold text-slate-700 mb-2">Your cart is empty</h3>
+                        <p class="text-slate-500 mb-6">Looks like you haven't added any vegetables yet.</p>
+                        <button onclick="navigate('shop')" class="bg-green-600 text-white px-6 py-2 rounded-lg font-medium">Start Shopping</button>
+                    </div>
+                `;
+                subTotalEl.textContent = '0';
+                totalEl.textContent = '0';
+                orderBtn.disabled = true;
+                warningEl.classList.add('hidden');
+                return;
+            }
+
+            let subtotal = 0;
+            container.innerHTML = cartData.map(item => {
+                const itemTotal = item.price * item.qty;
+                subtotal += itemTotal;
+                return `
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 flex items-center gap-4 shadow-sm">
+                        <div class="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center text-3xl">
+                            ${item.emoji}
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800">${item.name}</h4>
+                            <div class="text-sm text-slate-500 font-medium mt-1">₹${item.price} / ${item.unit}</div>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="font-bold text-lg text-slate-800">₹${itemTotal.toFixed(2)}</div>
+                            <div class="flex items-center gap-2 bg-slate-50 rounded-lg p-1 border border-slate-200">
+                                <button onclick="updateCartQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-white rounded text-slate-600 shadow-sm hover:bg-slate-100"><i class="ph ph-minus text-sm"></i></button>
+                                <span class="text-sm font-bold w-6 text-center">${item.qty}</span>
+                                <button onclick="updateCartQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-white rounded text-slate-600 shadow-sm hover:bg-slate-100"><i class="ph ph-plus text-sm"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart('${item.id}')" class="text-red-400 hover:text-red-600 p-2"><i class="ph ph-trash text-xl"></i></button>
+                    </div>
+                `;
+            }).join('');
+
+            subTotalEl.textContent = subtotal.toFixed(2);
+            const finalTotal = subtotal + 20; // adding delivery fee
+            totalEl.textContent = finalTotal.toFixed(2);
+
+            // Validation check
+            const hasAddress = userProfile && userProfile.address && userProfile.address.trim() !== '';
+            const hasPhone = userProfile && userProfile.phone && userProfile.phone.trim() !== '';
+            
+            if(!hasAddress || !hasPhone) {
+                warningEl.classList.remove('hidden');
+                orderBtn.disabled = true;
+            } else {
+                warningEl.classList.add('hidden');
+                orderBtn.disabled = false;
+            }
+        }
+
+        async function placeOrder() {
+            if(!currentUser || cartData.length === 0) return;
+            const btn = document.getElementById('placeOrderBtn');
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph ph-spinner animate-spin text-xl"></i> Processing...`;
+
+                const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const total = subtotal + 20;
+
+                const orderDoc = {
+                    customerId: currentUser.uid,
+                    customerName: userProfile.name,
+                    customerPhone: userProfile.phone,
+                    customerAddress: userProfile.address,
+                    items: cartData,
+                    subtotal: subtotal,
+                    deliveryFee: 20,
+                    total: total,
+                    status: 'Pending', // Pending -> Accepted -> OutForDelivery -> Delivered
+                    deliveryBoyId: null,
+                    deliveryBoyName: null,
+                    timestamp: new Date().toISOString()
+                };
+
+                // Add to Orders
+                await addDoc(collection(db, DB_PATHS.ORDERS), orderDoc);
+
+                // Reduce Stock in Products
+                for (const item of cartData) {
+                    const prod = productsData.find(p => p.id === item.id);
+                    if (prod) {
+                        const newStock = Math.max(0, prod.stock - item.qty);
+                        await updateDoc(doc(db, DB_PATHS.PRODUCTS, item.id), { stock: newStock });
+                    }
+                }
+
+                // Clear Cart
+                cartData = [];
+                saveCart();
+                
+                showToast("Order placed successfully!", "success");
+                navigate('my-orders');
+
+            } catch (error) {
+                console.error("Order placement failed:", error);
+                showToast("Failed to place order", "error");
+                btn.disabled = false;
+                btn.innerHTML = `<i class="ph ph-check-circle text-xl"></i> Place Order`;
+            }
+        }
+
+
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                case 'Accepted': return 'bg-blue-100 text-blue-800 border-blue-200';
+                case 'OutForDelivery': return 'bg-purple-100 text-purple-800 border-purple-200';
+                case 'Delivered': return 'bg-green-100 text-green-800 border-green-200';
+                case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
+                default: return 'bg-slate-100 text-slate-800 border-slate-200';
+            }
+        }
+
+        // --- Customer Orders ---
+        function renderCustomerOrders() {
+            if(currentRole !== 'customer') return;
+            const container = document.getElementById('customerOrdersList');
+            if(!container) return;
+
+            const myOrders = ordersData.filter(o => o.customerId === currentUser.uid);
+
+            if(myOrders.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 bg-white rounded-xl border border-slate-100 text-slate-500"><p>No orders placed yet.</p></div>`;
+                return;
+            }
+
+            container.innerHTML = myOrders.map(order => {
+                const date = new Date(order.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+                const itemsStr = order.items.map(i => `${i.name} (${i.qty})`).join(', ');
+                
+                return `
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm cursor-pointer hover:border-slate-300 transition-colors" onclick="openOrderDetails('${order.id}')">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="text-xs text-slate-400 mb-1">Order #${order.id.slice(-6).toUpperCase()} • ${date}</div>
+                            <div class="font-semibold text-slate-800 text-sm max-w-xs truncate">${itemsStr}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600 mb-1">₹${order.total.toFixed(2)}</div>
+                            <span class="inline-block px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}">${order.status}</span>
+                        </div>
+                    </div>
+                    ${order.deliveryBoyName && (order.status === 'Accepted' || order.status === 'OutForDelivery') ? 
+                        `<div class="text-xs bg-slate-50 p-2 rounded text-slate-600 flex items-center gap-2"><i class="ph ph-moped"></i> Delivery partner assigned: <span class="font-semibold">${order.deliveryBoyName}</span></div>` 
+                    : ''}
+                </div>`;
+            }).join('');
+        }
+
+        // --- Admin Orders ---
+        function renderAdminOrders() {
+            if(currentRole !== 'owner') return;
+            const container = document.getElementById('adminOrdersList');
+            if(!container) return;
+
+            if(ordersData.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500 bg-white rounded-xl border border-slate-100">No orders in the system.</div>`;
+                return;
+            }
+
+            container.innerHTML = ordersData.map(order => {
+                const date = new Date(order.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+                
+                return `
+                <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col relative overflow-hidden">
+                    <div class="border-b border-slate-50 pb-3 mb-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-mono text-slate-400">#${order.id.slice(-6).toUpperCase()}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}">${order.status}</span>
+                        </div>
+                        <div class="text-xs text-slate-500"><i class="ph ph-clock"></i> ${date}</div>
+                    </div>
+                    
+                    <div class="mb-3 flex-1">
+                        <div class="font-semibold text-slate-800 text-sm flex items-center gap-2"><i class="ph ph-user text-slate-400"></i> ${order.customerName}</div>
+                        <div class="font-bold text-lg text-green-600 mt-2">₹${order.total.toFixed(2)} <span class="text-xs font-normal text-slate-400">(${order.items.length} items)</span></div>
+                    </div>
+
+                    <button onclick="openOrderDetails('${order.id}')" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium py-2 rounded-lg text-sm transition-colors border border-slate-200">
+                        View Details & Manage
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        // --- Delivery Orders ---
+        let currentDeliveryTab = 'available'; // available, my_deliveries
+        
+        function setDeliveryTab(tab) {
+            currentDeliveryTab = tab;
+            document.getElementById('tab-del-available').className = tab === 'available' 
+                ? "px-4 py-2 border-b-2 border-green-600 text-green-600 font-semibold transition-colors" 
+                : "px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium transition-colors";
+            document.getElementById('tab-del-mine').className = tab === 'my_deliveries' 
+                ? "px-4 py-2 border-b-2 border-green-600 text-green-600 font-semibold transition-colors" 
+                : "px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium transition-colors";
+            
+            renderDeliveryOrders();
+        }
+
+        function renderDeliveryOrders() {
+            if(currentRole !== 'delivery') return;
+            const container = document.getElementById('deliveryOrdersList');
+            if(!container) return;
+
+            let displayOrders = [];
+            
+            if(currentDeliveryTab === 'available') {
+                // Show 'Accepted' orders that don't have a delivery boy yet
+                displayOrders = ordersData.filter(o => o.status === 'Accepted' && !o.deliveryBoyId);
+            } else {
+                // Show orders assigned to THIS delivery boy
+                displayOrders = ordersData.filter(o => o.deliveryBoyId === currentUser.uid && (o.status === 'OutForDelivery' || o.status === 'Delivered'));
+            }
+
+            if(displayOrders.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 bg-white rounded-xl border border-slate-100 text-slate-500"><i class="ph ph-check-circle text-4xl mb-2 text-slate-300"></i><p>No orders found for this view.</p></div>`;
+                return;
+            }
+
+            container.innerHTML = displayOrders.map(order => {
+                const isAvailable = currentDeliveryTab === 'available';
+                return `
+                <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}">${order.status}</span>
+                            <div class="font-bold text-slate-800 mt-2">${order.customerName}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-lg text-green-600">₹${order.total.toFixed(2)}</div>
+                            <div class="text-xs text-slate-400">${order.items.length} items</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 mb-4 border border-slate-100">
+                        <div class="flex items-start gap-2"><i class="ph ph-map-pin mt-1 text-slate-400"></i> <span>${order.customerAddress}</span></div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="openOrderDetails('${order.id}')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-lg transition-colors">Details</button>
+                        
+                        ${isAvailable ? `
+                            <button onclick="acceptDelivery('${order.id}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1"><i class="ph ph-moped"></i> Accept</button>
+                        ` : order.status === 'OutForDelivery' ? `
+                            <button onclick="markDelivered('${order.id}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1"><i class="ph ph-check-circle"></i> Complete</button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // Delivery Actions
+        window.acceptDelivery = async function(orderId) {
+            if(!currentUser) return;
+            try {
+                const orderRef = doc(db, DB_PATHS.ORDERS, orderId);
+                await updateDoc(orderRef, {
+                    status: 'OutForDelivery',
+                    deliveryBoyId: currentUser.uid,
+                    deliveryBoyName: userProfile.name || 'Delivery Partner'
+                });
+                showToast("Order accepted for delivery!", "success");
+                setDeliveryTab('my_deliveries');
+            } catch(e) {
+                console.error(e);
+                showToast("Failed to accept order", "error");
+            }
+        };
+
+        window.markDelivered = async function(orderId) {
+            try {
+                const orderRef = doc(db, DB_PATHS.ORDERS, orderId);
+                await updateDoc(orderRef, { status: 'Delivered' });
+                showToast("Order marked as delivered!", "success");
+            } catch(e) {
+                console.error(e);
+                showToast("Update failed", "error");
+            }
+        };
+
+
+
+        function openOrderDetails(orderId) {
+            const order = ordersData.find(o => o.id === orderId);
+            if(!order) return;
+
+            const modal = document.getElementById('orderDetailsModal');
+            const content = document.getElementById('orderDetailsContent');
+            
+            const date = new Date(order.timestamp).toLocaleString('en-IN');
+            
+            let actionButtons = '';
+            
+            if (currentRole === 'owner') {
+                actionButtons = `
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Update Status</label>
+                        <div class="flex gap-2">
+                            ${order.status === 'Pending' ? `<button onclick="updateOrderStatus('${order.id}', 'Accepted')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium text-sm transition-colors">Accept Order</button>` : ''}
+                            ${order.status !== 'Delivered' && order.status !== 'Cancelled' ? `<button onclick="updateOrderStatus('${order.id}', 'Cancelled')" class="flex-1 bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg font-medium text-sm transition-colors">Cancel Order</button>` : ''}
+                            ${order.status === 'Delivered' ? `<div class="text-sm text-green-600 font-bold w-full text-center py-2 bg-green-50 rounded">Order Completed</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (currentRole === 'customer') {
+                // If pending, allow cancel
+                if(order.status === 'Pending') {
+                    actionButtons = `
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                         <button onclick="updateOrderStatus('${order.id}', 'Cancelled')" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 rounded-lg font-medium text-sm transition-colors">Cancel Order</button>
+                    </div>`;
+                }
+            }
+
+            content.innerHTML = `
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800">Order Details</h3>
+                        <p class="text-xs text-slate-500 font-mono">#${order.id}</p>
+                    </div>
+                    <button onclick="closeOrderDetails()" class="text-slate-400 hover:text-slate-700 bg-white rounded-full p-1.5 shadow-sm">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+                
+                <div class="p-5 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-sm text-slate-500"><i class="ph ph-calendar-blank"></i> ${date}</span>
+                        <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(order.status)}">${order.status}</span>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Customer Details</h4>
+                        <p class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i class="ph ph-user text-slate-400"></i> ${order.customerName}</p>
+                        ${(currentRole === 'owner' || currentRole === 'delivery') ? `
+                            <p class="text-sm text-slate-600 mb-1 flex items-center gap-2"><i class="ph ph-phone text-slate-400"></i> <a href="tel:${order.customerPhone}" class="text-blue-600 hover:underline">${order.customerPhone}</a></p>
+                            <p class="text-sm text-slate-600 flex items-start gap-2 mt-2 pt-2 border-t border-slate-200"><i class="ph ph-map-pin mt-1 text-slate-400"></i> <span>${order.customerAddress}</span></p>
+                        ` : ''}
+                    </div>
+
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Items Ordered</h4>
+                    <div class="space-y-3 mb-6">
+                        ${order.items.map(item => `
+                            <div class="flex justify-between items-center text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-8 h-8 bg-slate-50 rounded flex items-center justify-center text-lg border border-slate-100">${item.emoji}</span>
+                                    <span class="font-medium text-slate-700">${item.name} <span class="text-slate-400 ml-1">x${item.qty}</span></span>
+                                </div>
+                                <span class="font-semibold text-slate-800">₹${(item.price * item.qty).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="border-t border-slate-200 pt-4 space-y-2 text-sm">
+                        <div class="flex justify-between text-slate-500"><span>Subtotal</span><span>₹${order.subtotal.toFixed(2)}</span></div>
+                        <div class="flex justify-between text-slate-500"><span>Delivery</span><span>₹${order.deliveryFee.toFixed(2)}</span></div>
+                        <div class="flex justify-between font-bold text-lg text-slate-800 pt-2"><span>Total</span><span class="text-green-600">₹${order.total.toFixed(2)}</span></div>
+                    </div>
+                    
+                    ${actionButtons}
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // small delay for transition
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeOrderDetails() {
+            const modal = document.getElementById('orderDetailsModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            if(!currentUser) return;
+            try {
+                const orderRef = doc(db, DB_PATHS.ORDERS, orderId);
+                await updateDoc(orderRef, { status: newStatus });
+                showToast(`Order marked as ${newStatus}`, "success");
+                closeOrderDetails();
+            } catch(e) {
+                console.error(e);
+                showToast("Failed to update status", "error");
+            }
+        }
+
+
+        function openProductModal(productId = null) {
+            const modal = document.getElementById('productModal');
+            const form = document.getElementById('productForm');
+            const title = document.getElementById('productModalTitle');
+            
+            form.reset();
+            document.getElementById('editProductId').value = '';
+            
+            if (productId) {
+                const product = productsData.find(p => p.id === productId);
+                if (product) {
+                    title.textContent = 'Edit Vegetable';
+                    document.getElementById('editProductId').value = product.id;
+                    document.getElementById('prodEmoji').value = product.emoji;
+                    document.getElementById('prodName').value = product.name;
+                    document.getElementById('prodPrice').value = product.price;
+                    document.getElementById('prodUnit').value = product.unit;
+                    document.getElementById('prodStock').value = product.stock;
+                }
+            } else {
+                title.textContent = 'Add New Vegetable';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('productModalContent').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeProductModal() {
+            const modal = document.getElementById('productModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('productModalContent').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            if (currentRole !== 'owner') return;
+
+            const id = document.getElementById('editProductId').value;
+            const productData = {
+                emoji: document.getElementById('prodEmoji').value,
+                name: document.getElementById('prodName').value.trim(),
+                price: Number(document.getElementById('prodPrice').value),
+                unit: document.getElementById('prodUnit').value,
+                stock: Number(document.getElementById('prodStock').value),
+                updatedAt: new Date().toISOString()
+            };
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, DB_PATHS.PRODUCTS, id), productData);
+                    showToast("Product updated successfully", "success");
+                } else {
+                    await addDoc(collection(db, DB_PATHS.PRODUCTS), productData);
+                    showToast("Product added successfully", "success");
+                }
+                closeProductModal();
+            } catch (error) {
+                console.error("Error saving product:", error);
+                showToast("Failed to save product", "error");
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (currentRole !== 'owner') return;
+            // Using custom modal confirmation replacement to avoid generic confirm() as per rules.
+            // For simplicity in this constrained environment, deleting directly with toast notification.
+            // In a real app, build a custom confirm modal.
+            try {
+                await deleteDoc(doc(db, DB_PATHS.PRODUCTS, id));
+                showToast("Product deleted", "info");
+            } catch (error) {
+                console.error("Error deleting:", error);
+                showToast("Failed to delete", "error");
+            }
+        }
+
+
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800';
+            let icon = 'info';
+            if(type === 'success') { bgClass = 'bg-green-600'; icon = 'check-circle'; }
+            if(type === 'error') { bgClass = 'bg-red-500'; icon = 'warning-circle'; }
+            
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 text-sm font-medium toast-enter min-w-[250px]`;
+            toast.innerHTML = `<i class="ph-fill ph-${icon} text-lg"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-leave');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
